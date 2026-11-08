@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vision 2048</title>
+
+<!-- Google AdSense -->
+<meta name="google-adsense-account" content="ca-pub-7963880628277539">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7963880628277539" crossorigin="anonymous"></script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-PGR4Y0TVNP"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-PGR4Y0TVNP');
+</script>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg1:#d9f3ff;--bg2:#e3f8e6;--ink:#17362b;--card:rgba(255,255,255,.78);--bd:#bcd9cc;--board:#7fae98;--cell:#b9d9ca;--ac:#1f9d63;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg1:#0d2230;--bg2:#10301f;--ink:#e6f6ee;--card:rgba(20,45,38,.8);--bd:#2c5a4a;--board:#1c3d33;--cell:#2a5543}}
+:root[data-theme="dark"]{--bg1:#0d2230;--bg2:#10301f;--ink:#e6f6ee;--card:rgba(20,45,38,.8);--bd:#2c5a4a;--board:#1c3d33;--cell:#2a5543}
+html,body{margin:0;min-height:100%;overflow-x:hidden}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg2);background:linear-gradient(var(--bg1),var(--bg2)) fixed;overscroll-behavior:none;background-color:var(--bg2)}
+#sky{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+#sky span{position:absolute;opacity:.5;animation:fl linear infinite}
+@keyframes fl{from{transform:translateX(-15vw) rotate(0)}to{transform:translateX(115vw) rotate(360deg)}}
+main{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:10px 10px 30px;text-align:center}
+h1{margin:4px 0 0;font-size:clamp(1.6rem,7vw,2.6rem);letter-spacing:.04em;background:linear-gradient(90deg,#1f8fd8,#1f9d63,#d9a400);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tag{margin:2px 0 8px;font-style:italic;opacity:.85}
+.st{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+@media(max-width:430px){.st{grid-template-columns:repeat(3,1fr)}}
+.st div,.pg,#pop,.pw button{background:var(--card);border:1px solid var(--bd);border-radius:12px;backdrop-filter:blur(4px)}
+.st div{padding:6px 2px;font-size:.62rem;letter-spacing:.05em;font-weight:700;opacity:.95}
+.st b{display:block;font-size:1.15rem;letter-spacing:0}
+.pg{margin:8px 0;padding:8px 10px;font-size:.8rem}
+.pgt{display:flex;justify-content:space-between;font-weight:700;margin-bottom:4px}
+.bar{height:12px;background:var(--cell);border-radius:8px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#4aa3e8,#2ec4b6,#2e9e5b,#e8b923);transition:width .5s}
+.pg small{display:block;margin-top:4px;opacity:.7;font-size:.65rem}
+#bw{display:flex;justify-content:center}
+#bd{width:min(94vw,520px);padding:2.2%;background:var(--board);border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.25);touch-action:none;user-select:none;-webkit-user-select:none}
+#bi{position:relative;width:100%;aspect-ratio:1}
+#bg{position:absolute;inset:0;display:grid;grid:repeat(4,1fr)/repeat(4,1fr)}
+.c{position:relative}.c i{position:absolute;inset:4%;background:var(--cell);border-radius:12%}
+#tl{position:absolute;inset:0}
+.t{position:absolute;left:0;top:0;width:25%;height:25%;container-type:size;transition:transform .11s ease-out}
+.t .i{position:absolute;inset:4%;border-radius:12%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.45);box-shadow:0 3px 8px rgba(0,0,0,.25),inset 0 2px 4px rgba(255,255,255,.3);line-height:1.05;text-align:center}
+.i b{font-size:36cqw;font-weight:400;text-shadow:none}.i em{font-style:normal;font-weight:800;font-size:19cqw}.i small{font-size:9.5cqw;font-weight:600;padding:0 4cqw}
+.pop .i{animation:pop .25s .1s both}
+@keyframes pop{0%{transform:scale(0);opacity:0}70%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
+#pop{margin:8px auto 0;width:min(94vw,520px);padding:8px 10px;font-size:.82rem;min-height:44px;display:flex;align-items:center;gap:8px;text-align:left;opacity:.0;transform:translateY(6px);transition:.3s}
+#pop.on{opacity:1;transform:none}
+#pop button{margin-left:auto;flex:none;padding:5px 8px;font-size:.65rem}
+.pw{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+@media(max-width:520px){.pw{grid-template-columns:repeat(2,1fr)}}
+.pw button{padding:7px 4px;color:var(--ink);cursor:pointer;font-size:.72rem;font-weight:700}
+.pw button small{display:block;font-weight:400;font-size:.62rem;opacity:.8;margin-top:2px}
+.pw button.sel{outline:3px solid var(--ac);animation:pulse 1s infinite}
+.pw button:disabled{opacity:.4}
+@keyframes pulse{50%{box-shadow:0 0 14px var(--ac)}}
+#hint{min-height:1.2em;font-size:.8rem;margin:6px 0}
+.ctl{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+button{font:inherit;font-weight:700;font-size:.78rem;border:0;border-radius:12px;padding:12px 14px;min-height:44px;background:var(--ac);color:#fff;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.2)}
+button:active{transform:translateY(2px);box-shadow:none}button:disabled{opacity:.45}
+button.off{background:#8a8f94}button.g{background:#556}
+.vol{display:flex;gap:6px;align-items:center;justify-content:center;margin-top:10px;font-size:.85rem}.vol input{width:min(34vw,150px)}
+#m{position:fixed;inset:0;z-index:50;background:rgba(5,25,20,.6);display:none;align-items:center;justify-content:center;padding:14px}
+#m.on{display:flex}
+.mb{background:var(--bg2);background:linear-gradient(var(--bg1),var(--bg2));color:var(--ink);border-radius:18px;max-width:480px;width:100%;max-height:88vh;overflow:auto;padding:18px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4);animation:pop .3s both}
+.mb h2{margin:0 0 6px}.mb p{margin:6px 0}.mb button{margin:4px}
+.mb ul{text-align:left;padding-left:20px;font-size:.85rem}.lk{opacity:.5}
+.vic{background:linear-gradient(160deg,#1f8fd8,#1f9d63 55%,#e8b923);color:#fff}
+.mb .ex{font-size:1.5rem;margin:4px 0}
+#nt{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:0;right:0;z-index:60;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+#nt div{background:#0f4d33;color:#fff;padding:8px 14px;border-radius:20px;font-size:.82rem;font-weight:700;animation:pop .3s both;box-shadow:0 4px 14px rgba(0,0,0,.3);max-width:92vw}
+#cf{position:fixed;inset:0;z-index:70;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="sky"></div><canvas id="cf"></canvas><div id="nt"></div>
+<main>
+<h1>🌎 VISION 2048</h1>
+<p class="tag">Every Merge Brings Us Closer to Cleaner Air!</p>
+<section class="st" id="st"></section>
+<section class="pg"><div class="pgt"><span id="pl"></span><span id="pp"></span></div><div class="bar"><i id="pf"></i></div><small>Game progress based on your highest tile – not a real air-quality measurement.</small></section>
+<div id="bw"><div id="bd"><div id="bi"><div id="bg"></div><div id="tl"></div></div></div></div>
+<div id="pop"><span id="pe" style="font-size:1.6rem"></span><span id="pt"></span><button id="pm" class="g">MORE INFO</button></div>
+<section class="pw" id="pw"></section>
+<p id="hint"></p>
+<div class="ctl">
+<button id="bN">NEW GAME</button><button id="bU" class="g">↩ UNDO</button><button id="bH" class="g">? HOW TO PLAY</button>
+<button id="bS">🔊 SOUND</button><button id="bM">🎵 MUSIC</button><button id="bT" class="g">💡 TIPS</button><button id="bR" class="g">RESET</button>
+</div>
+<div class="vol">🎵<input type="range" id="vm" min="0" max="100" aria-label="Music volume">🔊<input type="range" id="vs" min="0" max="100" aria-label="Sound effects volume"></div>
+</main>
+<div id="m"></div>
+<script>
+const $=s=>document.querySelector(s);
+const LV=[
+["🚲","Bicycle","Choose cycling for short journeys to reduce vehicle emissions."],
+["🚗","Electric Vehicle","Electric vehicles have no tailpipe emissions, although their electricity and manufacturing have environmental impacts."],
+["🚌","Public Transport","Public transport can reduce emissions per passenger compared with individual car journeys."],
+["🚌","Electric Bus","Electric buses can reduce roadside exhaust pollution."],
+["🌳","Tree","Trees absorb carbon dioxide and support healthier urban environments."],
+["🌲","Green Forest","Protecting forests supports biodiversity and ecological balance."],
+["☀️","Solar Energy","Solar power generates electricity without direct combustion emissions."],
+["🌬️","Clean Energy","Cleaner electricity can help reduce pollution from fossil fuels."],
+["🏞️","Green Park","Urban green spaces improve the quality of city environments."],
+["🌍","Clean Environment","Cleaner air starts with reducing pollution at its source."],
+["🌎","Clean Air City","Every citizen can contribute to a healthier city!"]];
+const CL=["linear-gradient(145deg,#aab2bd,#7f8896)","linear-gradient(145deg,#f7b25e,#e8862a)","linear-gradient(145deg,#5db4f2,#2f86d6)","linear-gradient(145deg,#3a8fe0,#2468b8)","linear-gradient(145deg,#37d1c2,#1aa89c)","linear-gradient(145deg,#8fe29f,#4cbf6b)","linear-gradient(145deg,#33a862,#1f8248)","linear-gradient(145deg,#1f9a63,#0f7a4a)","linear-gradient(145deg,#12805a,#0a5c3e)","linear-gradient(145deg,#2f8fd8,#10a874)","linear-gradient(145deg,#2f9bd8,#22b573 45%,#f2c230)"];
+const TIPS=["Walk or cycle for short journeys.","Use public transport whenever you can.","Avoid unnecessary vehicle idling – switch the engine off while waiting.","Keep vehicle engines properly maintained.","Never burn garbage, leaves or crop waste.","Save electricity: switch off lights and appliances you are not using.","Support renewable energy such as solar and wind.","Carpool: fewer cars on the road means less exhaust.","Cover construction materials and sites to reduce dust.","Use cleaner cooking fuels and stoves.","Plant and care for trees in your neighbourhood.","Avoid unnecessary energy consumption at home and work.","Reduce, reuse and recycle waste.","Check tyre pressure regularly – it improves fuel efficiency.","Choose electric or low-emission vehicles when you can.","Avoid burning firecrackers and open fires.","Ventilate indoor spaces and avoid indoor smoke.","Choose energy-efficient appliances.","Buy local goods to cut transport emissions.","Report illegal burning or visible smoke to local authorities.","Combine errands or work from home to reduce trips.","Switch to LED lighting.","Support clean public transport expansion in your city.","Compost organic waste instead of burning it.","Check your local air-quality index before outdoor exercise.","Talk to friends and family about clean-air habits."];
+const PW={boost:["🌱","Green Boost","Remove one tile worth 16 or less."],blast:["🌬️","Clean Air Blast","Clear a chosen row or column."],recycle:["♻️","Recycling Power","Upgrade one tile to the next level."],shield:["🌳","Tree Shield","No new tile after your next move."]};
+const AD=[["first","🚲","First Green Move"],["expl","🌱","Eco Explorer"],["tree","🌳","Tree Champion"],["sol","☀️","Solar Hero"],["adv","🌍","Clean Air Advocate"],["champ","🏆","2048 Clean Air Champion"]];
+const MS=[[10,"Pollution Beginner"],[25,"Eco Explorer"],[40,"Green Warrior"],[60,"Clean Air Champion"],[80,"Planet Protector"],[100,"Clean Air City Master"]];
+const lv=v=>Math.log2(v)-1;
+let S,best=0,snap=null,pend=null,ms="",P={m:.5,s:.7,mm:0,sm:0};
+
+/* ---------- storage ---------- */
+function save(){try{S.t.forEach(t=>t.n=0);localStorage.setItem("bb2048",JSON.stringify({S,best}))}catch(e){}}
+function savePrefs(){try{localStorage.setItem("bb2048p",JSON.stringify(P))}catch(e){}}
+function load(){try{const d=JSON.parse(localStorage.getItem("bb2048"));if(d&&d.S&&d.S.t){S=d.S;best=d.best||0;}}catch(e){}
+try{const p=JSON.parse(localStorage.getItem("bb2048p"));if(p)P=Object.assign(P,p)}catch(e){}}
+
+/* ---------- audio ---------- */
+let AC,mg,sg;
+function init(){if(AC){if(AC.state=="suspended")AC.resume();return}
+try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return}
+mg=AC.createGain();sg=AC.createGain();mg.connect(AC.destination);sg.connect(AC.destination);vol();music()}
+function vol(){if(!AC)return;mg.gain.value=P.mm?0:P.m*.4;sg.gain.value=P.sm?0:P.s}
+function tone(f,t0,d,ty,v,dest){const o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.value=f;g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(v,t0+.03);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(dest);o.start(t0);o.stop(t0+d+.05)}
+function sfx(n,l=0){if(!AC||AC.state!="running")return;const t=AC.currentTime,T=(f,d,ty,v,o)=>tone(f,t+(o||0),d,ty||"sine",v||.25,sg);
+if(n=="slide")T(180,.08,"triangle",.12);
+else if(n=="merge"){const f=330*Math.pow(2,l/6);T(f,.2,"sine",.3);T(f*1.5,.2,"sine",.2,.06)}
+else if(n=="big")[523,659,784,1047].forEach((f,i)=>T(f,.3,"triangle",.25,i*.07));
+else if(n=="power"){T(300,.3,"sawtooth",.1);T(600,.3,"sine",.2,.1);T(900,.3,"sine",.15,.2)}
+else if(n=="eco")T(1200,.1,"sine",.15);
+else if(n=="mile")[523,659,784].forEach((f,i)=>T(f,.4,"triangle",.25,i*.12));
+else if(n=="click")T(700,.05,"square",.07);
+else if(n=="win")[523,659,784,1047,1319,1568].forEach((f,i)=>T(f,.5,"triangle",.28,i*.15));
+else if(n=="over")[392,330,262,196].forEach((f,i)=>T(f,.4,"sawtooth",.14,i*.2))}
+function music(){const ch=[[261.6,329.6,392],[220,261.6,329.6],[174.6,220,261.6],[196,246.9,293.7]],ar=[0,1,2,1,2,1,0,2];let st=0,nt=AC.currentTime+.1;
+setInterval(()=>{if(AC.state!="running")return;if(nt<AC.currentTime)nt=AC.currentTime+.05;
+while(nt<AC.currentTime+.4){const c=ch[Math.floor(st/8)%4],i=st%8;
+if(i==0)c.forEach(f=>tone(f/2,nt,2.4,"sine",.16,mg));
+tone(c[ar[i]]*2,nt,.5,"triangle",.2,mg);
+if(i%4==0)tone(c[2]*4,nt,.9,"sine",.06,mg);
+nt+=.3;st++}},100)}
+document.addEventListener("visibilitychange",()=>{if(!AC)return;document.hidden?AC.suspend():AC.resume()});
+
+/* ---------- helpers ---------- */
+function note(h,ms=2600){const d=document.createElement("div");d.innerHTML=h;$("#nt").appendChild(d);setTimeout(()=>d.remove(),ms)}
+function modal(h,cls){$("#m").innerHTML='<div class="mb '+(cls||"")+'">'+h+'</div>';$("#m").classList.add("on")}
+function closeM(){$("#m").classList.remove("on");sfx("click")}
+const isOpen=()=>$("#m").classList.contains("on");
+let FN=[];function btn(l,f,c){FN.push(f);return '<button class="'+(c||"")+'" onclick="FN['+(FN.length-1)+']()">'+l+'</button>'}
+function ask(msg,opts){FN=[];modal("<h2>Please confirm</h2><p>"+msg+"</p>"+opts.map(o=>btn(o[0],()=>{closeM();o[1]&&o[1]()},o[2])).join(""))}
+function confetti(n=120){const c=$("#cf"),x=c.getContext("2d");c.width=innerWidth;c.height=innerHeight;
+const ps=[...Array(n)].map(()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height*.5,vx:Math.random()*4-2,vy:2+Math.random()*4,s:5+Math.random()*6,h:Math.random()*360,r:Math.random()*6}));let f=0;
+(function a(){x.clearRect(0,0,c.width,c.height);ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.r+=.1;x.fillStyle="hsl("+p.h+",85%,55%)";x.save();x.translate(p.x,p.y);x.rotate(p.r);x.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);x.restore()});if(++f<200)requestAnimationFrame(a);else x.clearRect(0,0,c.width,c.height)})()}
+
+/* ---------- game core ---------- */
+function newGame(){S={t:[],score:0,moves:0,eco:0,hi:2,ach:[],pw:{boost:1,blast:1,recycle:1,shield:1},won:0,nid:1,shield:0,over:0};snap=null;pend=null;ms="";spawn();spawn();sync();ui();save()}
+function spawn(){const used=new Set(S.t.map(t=>t.r*4+t.c)),e=[];for(let i=0;i<16;i++)if(!used.has(i))e.push(i);if(!e.length)return;
+const k=e[Math.floor(Math.random()*e.length)];S.t.push({id:S.nid++,v:Math.random()<.9?2:4,r:k>>2,c:k&3,n:1})}
+const EM={};
+function sync(g){g=g||[];const all=S.t.concat(g),ids=new Set(all.map(t=>String(t.id)));
+for(const id in EM)if(!ids.has(id)){EM[id].remove();delete EM[id]}
+all.forEach(t=>{let e=EM[t.id];if(!e){const l=lv(t.v);e=document.createElement("div");e.className="t"+(t.n?" pop":"");
+e.innerHTML='<div class="i" style="background:'+CL[l]+'"><b>'+LV[l][0]+'</b><em>'+t.v+'</em><small>'+LV[l][1]+'</small></div>';
+e.style.transform="translate("+t.c*100+"%,"+t.r*100+"%)";$("#tl").appendChild(e);EM[t.id]=e;t.n=0}
+e.style.transform="translate("+t.c*100+"%,"+t.r*100+"%)"})}
+function canMove(){if(S.t.length<16)return true;const g={};S.t.forEach(t=>g[t.r*4+t.c]=t.v);
+for(let r=0;r<4;r++)for(let c=0;c<4;c++){const v=g[r*4+c];if((c<3&&g[r*4+c+1]==v)||(r<3&&g[(r+1)*4+c]==v))return true}return false}
+function move(dir){if(isOpen()||S.over)return;const horiz=dir=="L"||dir=="R",rev=dir=="R"||dir=="D",before=JSON.stringify(S);
+let moved=false,merges=[],gain=0;
+for(let k=0;k<4;k++){let line=S.t.filter(t=>horiz?t.r==k:t.c==k).sort((a,b)=>horiz?a.c-b.c:a.r-b.r);if(rev)line.reverse();let pos=0;
+const set=(t,p)=>{const q=rev?3-p:p,nr=horiz?k:q,nc=horiz?q:k;if(t.r!=nr||t.c!=nc)moved=true;t.r=nr;t.c=nc};
+for(let i=0;i<line.length;i++){const t=line[i],n=line[i+1];
+if(n&&n.v==t.v){set(t,pos);set(n,pos);merges.push({a:t,b:n,r:t.r,c:t.c,v:t.v*2});gain+=t.v*2;i++;moved=true}else set(t,pos);pos++}}
+if(!moved)return;
+pend=null;snap=before;
+const ghosts=merges.flatMap(m=>[m.a,m.b]);S.t=S.t.filter(t=>!ghosts.includes(t));
+let top=0;merges.forEach(m=>{S.t.push({id:S.nid++,v:m.v,r:m.r,c:m.c,n:1});top=Math.max(top,m.v);S.eco+=lv(m.v)+1});
+S.score+=gain;S.moves++;if(S.score>best)best=S.score;
+if(S.shield){S.shield=0;note("🌳 Tree Shield used – no new tile")}else spawn();
+sfx("slide");if(top){sfx(top>=128?"big":"merge",lv(top));setTimeout(()=>sfx("eco"),180)}
+if(!S.ach.includes("first"))unlock("first");
+if(top){hiCheck(top);popup(lv(top))}
+sync(ghosts);setTimeout(()=>sync(),130);ui();save();
+if(!canMove()){S.over=1;save();sfx("over");setTimeout(gameOver,650)}}
+function hiCheck(v){if(v>S.hi){S.hi=v;const l=lv(v);note("⬆️ Level up! "+LV[l][0]+" "+LV[l][1]);sfx("mile");
+if(v==128||v==512){const k=Object.keys(PW)[Math.floor(Math.random()*4)];S.pw[k]++;note("🎁 Power-up earned: "+PW[k][0]+" "+PW[k][1]);sfx("power")}}
+if(v>=16)unlock("expl");if(v>=32)unlock("tree");if(v>=128)unlock("sol");if(v>=1024)unlock("adv");
+if(v>=2048){unlock("champ");if(!S.won){S.won=1;save();setTimeout(victory,600)}}}
+function unlock(k){if(S.ach.includes(k))return;S.ach.push(k);const a=AD.find(x=>x[0]==k);note("🏅 Achievement: "+a[1]+" "+a[2],3200);sfx("mile");confetti(50)}
+let pt;function popup(l){$("#pe").textContent=LV[l][0];$("#pt").textContent=LV[l][2];$("#pop").classList.add("on");clearTimeout(pt);pt=setTimeout(()=>$("#pop").classList.remove("on"),5000)}
+function undo(){if(!snap||isOpen())return;S=JSON.parse(snap);snap=null;pend=null;sync();ui();save();sfx("click")}
+
+/* ---------- power-ups ---------- */
+function pick(k){if(isOpen()||S.over)return;init();
+if(S.pw[k]<=0)return note("No "+PW[k][1]+" uses left");
+if(k=="shield"){if(S.shield)return note("Tree Shield already active");snap=JSON.stringify(S);S.pw[k]--;S.shield=1;sfx("power");note("🌳 Tree Shield ready: your next move adds no tile");ui();save();return}
+pend=pend==k?null:k;sfx("click");ui()}
+function usePw(r,c){const k=pend,t=S.t.find(t=>t.r==r&&t.c==c);
+const done=()=>{S.pw[k]--;pend=null;sfx("power");sync();ui();save()};
+if(k=="boost"){if(!t||t.v>16)return note("Pick a tile worth 16 or less");
+ask("Remove this "+LV[lv(t.v)][0]+" "+LV[lv(t.v)][1]+" tile?",[["REMOVE",()=>{snap=JSON.stringify(S);S.t=S.t.filter(x=>x!=t);done()}],["CANCEL",null,"g"]])}
+else if(k=="blast"){const cut=f=>()=>{snap=JSON.stringify(S);S.t=S.t.filter(x=>!f(x));done()};
+ask("Clear row "+(r+1)+" or column "+(c+1)+"? Tiles there will be lost.",[["CLEAR ROW",cut(x=>x.r==r)],["CLEAR COLUMN",cut(x=>x.c==c)],["CANCEL",null,"g"]])}
+else if(k=="recycle"){if(!t||lv(t.v)>=10)return note("Pick a tile below Clean Air City");
+ask("Upgrade this "+LV[lv(t.v)][1]+" to "+LV[lv(t.v)+1][1]+"?",[["UPGRADE",()=>{snap=JSON.stringify(S);S.t=S.t.filter(x=>x!=t);const v=t.v*2;S.t.push({id:S.nid++,v,r,c,n:1});hiCheck(v);done();if(!canMove()){S.over=1;gameOver()}}],["CANCEL",null,"g"]])}}
+
+/* ---------- UI ---------- */
+function ui(){const pct=Math.round((lv(S.hi)+1)/11*100);let m="Just Starting";MS.forEach(x=>{if(pct>=x[0])m=x[1]});
+if(m!=ms&&ms){note("🎯 Milestone: "+m);sfx("mile")}ms=m;
+$("#st").innerHTML=[["CURRENT SCORE",S.score],["BEST SCORE",best],["ECO POINTS","🌿 "+S.eco],["MOVES",S.moves],["HIGHEST TILE",LV[lv(S.hi)][0]+" "+S.hi]].map(a=>"<div>"+a[0]+"<b>"+a[1]+"</b></div>").join("");
+$("#pl").textContent=m;$("#pp").textContent=pct+"%";$("#pf").style.width=pct+"%";
+$("#pw").innerHTML=Object.keys(PW).map(k=>'<button data-k="'+k+'" class="'+(pend==k||(k=="shield"&&S.shield)?"sel":"")+'"'+(S.pw[k]<=0?" disabled":"")+'>'+PW[k][0]+" "+PW[k][1]+" ×"+S.pw[k]+"<small>"+PW[k][2]+"</small></button>").join("");
+$("#hint").textContent=pend?({boost:"Tap a tile worth 16 or less to remove it.",blast:"Tap any cell – you will choose its row or column.",recycle:"Tap a tile to upgrade it one level."})[pend]:"";
+$("#bU").disabled=!snap;$("#bS").classList.toggle("off",!!P.sm);$("#bM").classList.toggle("off",!!P.mm);
+$("#vm").value=P.m*100;$("#vs").value=P.s*100}
+function stats(){return "<p><b>Final score:</b> "+S.score+" &nbsp; <b>Highest tile:</b> "+LV[lv(S.hi)][0]+" "+S.hi+"</p><p><b>Moves:</b> "+S.moves+" &nbsp; <b>Eco Points:</b> "+S.eco+"</p><p><b>Achievements:</b> "+(S.ach.length?AD.filter(a=>S.ach.includes(a[0])).map(a=>a[1]).join(" "):"none yet")+"</p>"}
+function gameOver(){FN=[];modal("<h2>THE CITY NEEDS YOUR HELP!</h2><p>Your journey towards cleaner air doesn’t have to end here.</p>"+stats()+btn("TRY AGAIN",()=>{closeM();newGame()})+btn("LEARN CLEAN AIR TIPS",tips,"g")+btn("MAIN MENU",menu,"g"))}
+function victory(){FN=[];sfx("win");confetti(220);modal('<h2>YOU DID IT!</h2><div style="font-size:3rem">🌎🏙️🌳</div><h3>CLEAN AIR CITY UNLOCKED!</h3><p>Congratulations! You have merged your way towards a cleaner, greener future.</p>'+stats()+btn("PLAY AGAIN",()=>{closeM();newGame()})+btn("CONTINUE PLAYING",closeM,"g"),"vic")}
+function tips(){FN=[];const n=Math.min(TIPS.length,6+lv(S.hi)*2);
+modal("<h2>💡 Clean Air Tips</h2><p>"+n+" of "+TIPS.length+" unlocked. Reach higher tiles to unlock more!</p><ul>"+TIPS.map((t,i)=>i<n?"<li>"+t+"</li>":'<li class="lk">🔒 Reach '+Math.pow(2,Math.min(11,Math.ceil((i-5)/2)+1))+" to unlock</li>").join("")+"</ul>"+btn("CLOSE",closeM))}
+function how(){FN=[];modal("<h2>How to Play</h2><div class='ex'>🚲 + 🚲 = 🚗</div><div class='ex'>🚗 + 🚗 = 🚌</div><div class='ex'>🚌 + 🚌 = 🚌 (Electric Bus)</div><p>Swipe (or use arrow keys / WASD) to move tiles. Combine matching tiles to unlock the next environmental solution. Keep merging until you reach CLEAN AIR CITY 🌎!</p><ul><li>Each move adds one new tile – but only if something moved.</li><li>A tile merges only once per move.</li><li>🌱 Green Boost removes a low tile; 🌬️ Clean Air Blast clears a row/column; ♻️ Recycling Power upgrades a tile; 🌳 Tree Shield skips the next new tile.</li><li>Reach 128 and 512 to earn bonus power-ups.</li></ul><p style='font-size:.75rem;opacity:.75'>Tile levels are symbolic game steps, not scientific equivalences.</p>"+btn("GOT IT",closeM))}
+function menu(){FN=[];const can=S&&S.moves>0&&!S.over;
+modal("<h2>🌎 VISION 2048</h2><p><i>Every Merge Brings Us Closer to Cleaner Air!</i></p><p>MERGE TILES. LEARN HABITS. REDUCE POLLUTION. BREATHE BETTER!</p>"+(can?btn("▶ RESUME GAME",()=>{init();closeM()}):btn("▶ START GAME",()=>{init();if(S.over)newGame();closeM()}))+(can?btn("NEW GAME",()=>{init();closeM();newGame()},"g"):"")+btn("HOW TO PLAY",how,"g")+btn("TIPS",tips,"g"))}
+
+/* ---------- events ---------- */
+$("#pw").onclick=e=>{const b=e.target.closest("button");if(b)pick(b.dataset.k)};
+$("#bN").onclick=()=>{init();sfx("click");S.moves?ask("Start a new game? Current progress will be lost.",[["NEW GAME",newGame],["CANCEL",null,"g"]]):newGame()};
+$("#bU").onclick=()=>{init();undo()};
+$("#bH").onclick=()=>{init();sfx("click");how()};$("#bT").onclick=()=>{init();sfx("click");tips()};
+$("#bR").onclick=()=>{init();sfx("click");ask("Reset everything, including best score and settings?",[["RESET ALL",()=>{try{localStorage.removeItem("bb2048");localStorage.removeItem("bb2048p")}catch(e){}best=0;P={m:.5,s:.7,mm:0,sm:0};vol();newGame()}],["CANCEL",null,"g"]])};
+$("#bS").onclick=()=>{init();P.sm=P.sm?0:1;vol();savePrefs();ui();sfx("click")};
+$("#bM").onclick=()=>{init();P.mm=P.mm?0:1;vol();savePrefs();ui()};
+$("#vm").oninput=e=>{init();P.m=e.target.value/100;P.mm=0;vol();savePrefs();ui()};
+$("#vs").oninput=e=>{init();P.s=e.target.value/100;P.sm=0;vol();savePrefs();ui()};
+$("#pm").onclick=()=>{init();tips()};
+document.addEventListener("keydown",e=>{const d={ArrowLeft:"L",ArrowRight:"R",ArrowUp:"U",ArrowDown:"D",a:"L",d:"R",w:"U",s:"D",A:"L",D:"R",W:"U",S:"D"}[e.key];
+if(d&&!isOpen()){e.preventDefault();init();move(d)}else if(e.key=="Escape"&&isOpen())closeM()});
+let ps=null;const bd=$("#bd");
+bd.addEventListener("pointerdown",e=>{ps={x:e.clientX,y:e.clientY};init()});
+bd.addEventListener("pointercancel",()=>ps=null);
+bd.addEventListener("pointerup",e=>{if(!ps)return;const dx=e.clientX-ps.x,dy=e.clientY-ps.y,a=Math.abs(dx),b=Math.abs(dy);ps=null;
+if(Math.max(a,b)<14){if(pend){const r=$("#bi").getBoundingClientRect(),c=Math.floor((e.clientX-r.left)/r.width*4),rw=Math.floor((e.clientY-r.top)/r.height*4);
+if(c>=0&&c<4&&rw>=0&&rw<4)usePw(rw,c)}return}
+move(a>b?(dx>0?"R":"L"):(dy>0?"D":"U"))});
+bd.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
+document.addEventListener("gesturestart",e=>e.preventDefault());
+
+/* ---------- start ---------- */
+(function(){const g=$("#bg");for(let i=0;i<16;i++)g.insertAdjacentHTML("beforeend","<div class='c'><i></i></div>");
+const sk=$("#sky"),em=["☁️","🍃","☁️","🌿","🍃","☁️","🌱","🍃"];
+em.forEach((e,i)=>{const s=document.createElement("span");s.textContent=e;s.style.cssText="top:"+(5+i*11)+"%;font-size:"+(22+i%3*12)+"px;animation-duration:"+(40+i*9)+"s;animation-delay:-"+i*7+"s";sk.appendChild(s)});
+load();if(!S)newGame();else{sync();ui()}
+menu()})();
+</script>
+</body>
+</html>
