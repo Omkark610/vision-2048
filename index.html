@@ -33,7 +33,8 @@ h1{margin:4px 0 0;font-size:clamp(1.6rem,7vw,2.6rem);letter-spacing:.04em;backgr
 .tag{margin:2px 0 8px;font-style:italic;opacity:.85}
 .st{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 @media(max-width:430px){.st{grid-template-columns:repeat(3,1fr)}}
-.st div,.pg,#pop,.pw button{background:var(--card);border:1px solid var(--bd);border-radius:12px;backdrop-filter:blur(4px)}
+.st div,#pop,.pw button{background:var(--card);border:1px solid var(--bd);border-radius:12px;backdrop-filter:blur(4px)}
+.pg{background:var(--card);border:1px solid var(--bd);border-radius:12px;backdrop-filter:blur(4px)}
 .st div{padding:6px 2px;font-size:.62rem;letter-spacing:.05em;font-weight:700;opacity:.95}
 .st b{display:block;font-size:1.15rem;letter-spacing:0}
 .pg{margin:8px 0;padding:8px 10px;font-size:.8rem}
@@ -67,6 +68,7 @@ h1{margin:4px 0 0;font-size:clamp(1.6rem,7vw,2.6rem);letter-spacing:.04em;backgr
 button{font:inherit;font-weight:700;font-size:.78rem;border:0;border-radius:12px;padding:12px 14px;min-height:44px;background:var(--ac);color:#fff;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.2)}
 button:active{transform:translateY(2px);box-shadow:none}button:disabled{opacity:.45}
 button.off{background:#8a8f94}button.g{background:#556}
+button.ai-btn{background:linear-gradient(135deg,#7928ca,#ff0080);box-shadow:0 3px 0 rgba(121,40,202,.4)}
 .vol{display:flex;gap:6px;align-items:center;justify-content:center;margin-top:10px;font-size:.85rem}.vol input{width:min(34vw,150px)}
 #m{position:fixed;inset:0;z-index:50;background:rgba(5,25,20,.6);display:none;align-items:center;justify-content:center;padding:14px}
 #m.on{display:flex}
@@ -92,7 +94,7 @@ button.off{background:#8a8f94}button.g{background:#556}
 <section class="pw" id="pw"></section>
 <p id="hint"></p>
 <div class="ctl">
-<button id="bN">NEW GAME</button><button id="bU" class="g">↩ UNDO</button><button id="bH" class="g">? HOW TO PLAY</button>
+<button id="bN">NEW GAME</button><button id="bAI" class="ai-btn">🤖 AI AUTO-PLAY</button><button id="bU" class="g">↩ UNDO</button><button id="bH" class="g">? HOW TO PLAY</button>
 <button id="bS">🔊 SOUND</button><button id="bM">🎵 MUSIC</button><button id="bT" class="g">💡 TIPS</button><button id="bR" class="g">RESET</button>
 </div>
 <div class="vol">🎵<input type="range" id="vm" min="0" max="100" aria-label="Music volume">🔊<input type="range" id="vs" min="0" max="100" aria-label="Sound effects volume"></div>
@@ -119,6 +121,7 @@ const AD=[["first","🚲","First Green Move"],["expl","🌱","Eco Explorer"],["t
 const MS=[[10,"Pollution Beginner"],[25,"Eco Explorer"],[40,"Green Warrior"],[60,"Clean Air Champion"],[80,"Planet Protector"],[100,"Clean Air City Master"]];
 const lv=v=>Math.log2(v)-1;
 let S,best=0,snap=null,pend=null,ms="",P={m:.5,s:.7,mm:0,sm:0};
+let aiInterval=null;
 
 /* ---------- storage ---------- */
 function save(){try{S.t.forEach(t=>t.n=0);localStorage.setItem("bb2048",JSON.stringify({S,best}))}catch(e){}}
@@ -133,7 +136,7 @@ try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return}
 mg=AC.createGain();sg=AC.createGain();mg.connect(AC.destination);sg.connect(AC.destination);vol();music()}
 function vol(){if(!AC)return;mg.gain.value=P.mm?0:P.m*.4;sg.gain.value=P.sm?0:P.s}
 function tone(f,t0,d,ty,v,dest){const o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.value=f;g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(v,t0+.03);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(dest);o.start(t0);o.stop(t0+d+.05)}
-function sfx(n,l=0){if(!AC||AC.state!="running")return;const t=AC.currentTime,T=(f,d,ty,v,o)=>tone(f,t+(o||0),d,ty||"sine",v||.25,sg);
+function sfx(n,l=0){if(!AC||AC.state!="running"||aiInterval)return;const t=AC.currentTime,T=(f,d,ty,v,o)=>tone(f,t+(o||0),d,ty||"sine",v||.25,sg);
 if(n=="slide")T(180,.08,"triangle",.12);
 else if(n=="merge"){const f=330*Math.pow(2,l/6);T(f,.2,"sine",.3);T(f*1.5,.2,"sine",.2,.06)}
 else if(n=="big")[523,659,784,1047].forEach((f,i)=>T(f,.3,"triangle",.25,i*.07));
@@ -153,7 +156,7 @@ nt+=.3;st++}},100)}
 document.addEventListener("visibilitychange",()=>{if(!AC)return;document.hidden?AC.suspend():AC.resume()});
 
 /* ---------- helpers ---------- */
-function note(h,ms=2600){const d=document.createElement("div");d.innerHTML=h;$("#nt").appendChild(d);setTimeout(()=>d.remove(),ms)}
+function note(h,ms=2600){if(aiInterval)return;const d=document.createElement("div");d.innerHTML=h;$("#nt").appendChild(d);setTimeout(()=>d.remove(),ms)}
 function modal(h,cls){$("#m").innerHTML='<div class="mb '+(cls||"")+'">'+h+'</div>';$("#m").classList.add("on")}
 function closeM(){$("#m").classList.remove("on");sfx("click")}
 const isOpen=()=>$("#m").classList.contains("on");
@@ -161,10 +164,10 @@ let FN=[];function btn(l,f,c){FN.push(f);return '<button class="'+(c||"")+'" onc
 function ask(msg,opts){FN=[];modal("<h2>Please confirm</h2><p>"+msg+"</p>"+opts.map(o=>btn(o[0],()=>{closeM();o[1]&&o[1]()},o[2])).join(""))}
 function confetti(n=120){const c=$("#cf"),x=c.getContext("2d");c.width=innerWidth;c.height=innerHeight;
 const ps=[...Array(n)].map(()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height*.5,vx:Math.random()*4-2,vy:2+Math.random()*4,s:5+Math.random()*6,h:Math.random()*360,r:Math.random()*6}));let f=0;
-(function a(){x.clearRect(0,0,c.width,c.height);ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.r+=.1;x.fillStyle="hsl("+p.h+",85%,55%)";x.save();x.translate(p.x,p.y);x.rotate(p.r);x.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);x.restore()});if(++f<200)requestAnimationFrame(a);else x.clearRect(0,0,c.width,c.height)})()}
+(function a(){x.clearRect(0,0,c.width,c.height);ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.r+=.1;x.fillStyle="hsl("+p.h+",85%,55%)";x.save();x.translate(p.x,p.y);x.rotate(p.r);x.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);x.restore()});if(f++<200)requestAnimationFrame(a);else x.clearRect(0,0,c.width,c.height)})()}
 
 /* ---------- game core ---------- */
-function newGame(){S={t:[],score:0,moves:0,eco:0,hi:2,ach:[],pw:{boost:1,blast:1,recycle:1,shield:1},won:0,nid:1,shield:0,over:0};snap=null;pend=null;ms="";spawn();spawn();sync();ui();save()}
+function newGame(){stopAI();S={t:[],score:0,moves:0,eco:0,hi:2,ach:[],pw:{boost:1,blast:1,recycle:1,shield:1},won:0,nid:1,shield:0,over:0};snap=null;pend=null;ms="";spawn();spawn();sync();ui();save()}
 function spawn(){const used=new Set(S.t.map(t=>t.r*4+t.c)),e=[];for(let i=0;i<16;i++)if(!used.has(i))e.push(i);if(!e.length)return;
 const k=e[Math.floor(Math.random()*e.length)];S.t.push({id:S.nid++,v:Math.random()<.9?2:4,r:k>>2,c:k&3,n:1})}
 const EM={};
@@ -176,29 +179,30 @@ e.style.transform="translate("+t.c*100+"%,"+t.r*100+"%)";$("#tl").appendChild(e)
 e.style.transform="translate("+t.c*100+"%,"+t.r*100+"%)"})}
 function canMove(){if(S.t.length<16)return true;const g={};S.t.forEach(t=>g[t.r*4+t.c]=t.v);
 for(let r=0;r<4;r++)for(let c=0;c<4;c++){const v=g[r*4+c];if((c<3&&g[r*4+c+1]==v)||(r<3&&g[(r+1)*4+c]==v))return true}return false}
-function move(dir){if(isOpen()||S.over)return;const horiz=dir=="L"||dir=="R",rev=dir=="R"||dir=="D",before=JSON.stringify(S);
+function move(dir){if(isOpen()||S.over)return false;const horiz=dir=="L"||dir=="R",rev=dir=="R"||dir=="D",before=JSON.stringify(S);
 let moved=false,merges=[],gain=0;
 for(let k=0;k<4;k++){let line=S.t.filter(t=>horiz?t.r==k:t.c==k).sort((a,b)=>horiz?a.c-b.c:a.r-b.r);if(rev)line.reverse();let pos=0;
 const set=(t,p)=>{const q=rev?3-p:p,nr=horiz?k:q,nc=horiz?q:k;if(t.r!=nr||t.c!=nc)moved=true;t.r=nr;t.c=nc};
 for(let i=0;i<line.length;i++){const t=line[i],n=line[i+1];
 if(n&&n.v==t.v){set(t,pos);set(n,pos);merges.push({a:t,b:n,r:t.r,c:t.c,v:t.v*2});gain+=t.v*2;i++;moved=true}else set(t,pos);pos++}}
-if(!moved)return;
+if(!moved)return false;
 pend=null;snap=before;
 const ghosts=merges.flatMap(m=>[m.a,m.b]);S.t=S.t.filter(t=>!ghosts.includes(t));
 let top=0;merges.forEach(m=>{S.t.push({id:S.nid++,v:m.v,r:m.r,c:m.c,n:1});top=Math.max(top,m.v);S.eco+=lv(m.v)+1});
 S.score+=gain;S.moves++;if(S.score>best)best=S.score;
-if(S.shield){S.shield=0;note("🌳 Tree Shield used – no new tile")}else spawn();
+if(S.shield){S.shield=0;if(!aiInterval)note("🌳 Tree Shield used – no new tile")}else spawn();
 sfx("slide");if(top){sfx(top>=128?"big":"merge",lv(top));setTimeout(()=>sfx("eco"),180)}
 if(!S.ach.includes("first"))unlock("first");
 if(top){hiCheck(top);popup(lv(top))}
 sync(ghosts);setTimeout(()=>sync(),130);ui();save();
-if(!canMove()){S.over=1;save();sfx("over");setTimeout(gameOver,650)}}
-function hiCheck(v){if(v>S.hi){S.hi=v;const l=lv(v);note("⬆️ Level up! "+LV[l][0]+" "+LV[l][1]);sfx("mile");
-if(v==128||v==512){const k=Object.keys(PW)[Math.floor(Math.random()*4)];S.pw[k]++;note("🎁 Power-up earned: "+PW[k][0]+" "+PW[k][1]);sfx("power")}}
+if(!canMove()){S.over=1;stopAI();save();sfx("over");setTimeout(gameOver,650)}
+return true;}
+function hiCheck(v){if(v>S.hi){S.hi=v;const l=lv(v);if(!aiInterval)note("⬆️ Level up! "+LV[l][0]+" "+LV[l][1]);sfx("mile");
+if(v==128||v==512){const k=Object.keys(PW)[Math.floor(Math.random()*4)];S.pw[k]++;if(!aiInterval)note("🎁 Power-up earned: "+PW[k][0]+" "+PW[k][1]);sfx("power")}}
 if(v>=16)unlock("expl");if(v>=32)unlock("tree");if(v>=128)unlock("sol");if(v>=1024)unlock("adv");
-if(v>=2048){unlock("champ");if(!S.won){S.won=1;save();setTimeout(victory,600)}}}
-function unlock(k){if(S.ach.includes(k))return;S.ach.push(k);const a=AD.find(x=>x[0]==k);note("🏅 Achievement: "+a[1]+" "+a[2],3200);sfx("mile");confetti(50)}
-let pt;function popup(l){$("#pe").textContent=LV[l][0];$("#pt").textContent=LV[l][2];$("#pop").classList.add("on");clearTimeout(pt);pt=setTimeout(()=>$("#pop").classList.remove("on"),5000)}
+if(v>=2048){unlock("champ");if(!S.won){S.won=1;save();stopAI();setTimeout(victory,600)}}}
+function unlock(k){if(S.ach.includes(k))return;S.ach.push(k);const a=AD.find(x=>x[0]==k);if(!aiInterval){note("🏅 Achievement: "+a[1]+" "+a[2],3200);confetti(50)}sfx("mile")}
+let pt;function popup(l){if(aiInterval)return;$("#pe").textContent=LV[l][0];$("#pt").textContent=LV[l][2];$("#pop").classList.add("on");clearTimeout(pt);pt=setTimeout(()=>$("#pop").classList.remove("on"),5000)}
 function undo(){if(!snap||isOpen())return;S=JSON.parse(snap);snap=null;pend=null;sync();ui();save();sfx("click")}
 
 /* ---------- power-ups ---------- */
@@ -215,11 +219,131 @@ ask("Clear row "+(r+1)+" or column "+(c+1)+"? Tiles there will be lost.",[["CLEA
 else if(k=="recycle"){if(!t||lv(t.v)>=10)return note("Pick a tile below Clean Air City");
 ask("Upgrade this "+LV[lv(t.v)][1]+" to "+LV[lv(t.v)+1][1]+"?",[["UPGRADE",()=>{snap=JSON.stringify(S);S.t=S.t.filter(x=>x!=t);const v=t.v*2;S.t.push({id:S.nid++,v,r,c,n:1});hiCheck(v);done();if(!canMove()){S.over=1;gameOver()}}],["CANCEL",null,"g"]])}}
 
+/* ---------- AI AUTO-PLAY LOGIC ---------- */
+function simulateMove(state, dir) {
+    let copy = JSON.parse(JSON.stringify(state));
+    const horiz = dir=="L"||dir=="R", rev = dir=="R"||dir=="D";
+    let moved = false, merges = [];
+    for(let k=0; k<4; k++) {
+        let line = copy.t.filter(t => horiz ? t.r==k : t.c==k).sort((a,b)=>horiz ? a.c-b.c : a.r-b.r);
+        if(rev) line.reverse(); let pos = 0;
+        const set = (t, p) => { const q = rev ? 3-p : p, nr = horiz ? k : q, nc = horiz ? q : k; if(t.r!=nr || t.c!=nc) moved = true; t.r = nr; t.c = nc; };
+        for(let i=0; i<line.length; i++) {
+            const t = line[i], n = line[i+1];
+            if(n && n.v == t.v) { set(t, pos); set(n, pos); merges.push({v: t.v*2}); i++; moved = true; }
+            else set(t, pos); pos++;
+        }
+    }
+    if(!moved) return null;
+    const ghosts = merges.flatMap(m => [m.a, m.b]);
+    copy.t = copy.t.filter(t => !ghosts.includes(t));
+    merges.forEach(m => copy.t.push({v: m.v}));
+    return copy;
+}
+
+function evaluateBoard(state) {
+    let grid = Array(4).fill(0).map(()=>Array(4).fill(0));
+    state.t.forEach(t => grid[t.r][t.c] = t.v);
+
+    let emptyCount = 0;
+    let maxTile = 0;
+    let smoothness = 0;
+    let monotonicity = 0;
+
+    // Snake weights pattern to encourage keeping high values in corners/edges
+    const weights = [
+        [65536, 32768, 16384, 8192],
+        [512,   1024,  2048,  4096],
+        [256,   128,   64,    32],
+        [1,     2,     4,     8]
+    ];
+    let weightedSum = 0;
+
+    for(let r=0; r<4; r++) {
+        for(let c=0; c<4; c++) {
+            let v = grid[r][c];
+            if(v === 0) emptyCount++;
+            else {
+                if(v > maxTile) maxTile = v;
+                weightedSum += v * weights[r][c];
+            }
+            if(c < 3) smoothness -= Math.abs(v - grid[r][c+1]);
+            if(r < 3) smoothness -= Math.abs(v - grid[r+1][c]);
+        }
+    }
+
+    // Check monotonicity across rows and columns
+    for(let r=0; r<4; r++) {
+        for(let c=0; c<3; c++) {
+            if(grid[r][c] >= grid[r][c+1]) monotonicity += 1;
+        }
+    }
+    for(let c=0; c<4; c++) {
+        for(let r=0; r<3; r++) {
+            if(grid[r][c] >= grid[r+1][c]) monotonicity += 1;
+        }
+    }
+
+    return weightedSum + (emptyCount * 25000) + smoothness * 0.1 + monotonicity * 1000;
+}
+
+function getBestMove() {
+    const dirs = ["L", "U", "R", "D"];
+    let bestDir = null;
+    let maxScore = -1;
+
+    for(let dir of dirs) {
+        let nextState = simulateMove(S, dir);
+        if(nextState) {
+            let score = evaluateBoard(nextState);
+            if(score > maxScore) {
+                maxScore = score;
+                bestDir = dir;
+            }
+        }
+    }
+    return bestDir;
+}
+
+function toggleAI() {
+    if(aiInterval) {
+        stopAI();
+        note("🤖 AI Auto-Play Paused");
+    } else {
+        if(S.over || S.won) return;
+        init();
+        aiInterval = setInterval(() => {
+            if(S.over || S.won || isOpen()) {
+                stopAI();
+                return;
+            }
+            let bestDir = getBestMove();
+            if(bestDir) {
+                move(bestDir);
+            } else {
+                stopAI();
+            }
+        }, 80); // Speed of AI moves (milliseconds per move)
+        note("🤖 AI Auto-Play Active – Maximizing Progress!");
+        $("#bAI").textContent = "⏸ STOP AI";
+        $("#bAI").style.background = "#d9534f";
+    }
+}
+
+function stopAI() {
+    if(aiInterval) {
+        clearInterval(aiInterval);
+        aiInterval = null;
+    }
+    $("#bAI").textContent = "🤖 AI AUTO-PLAY";
+    $("#bAI").style.background = "";
+}
+
 /* ---------- UI ---------- */
 function ui(){const pct=Math.round((lv(S.hi)+1)/11*100);let m="Just Starting";MS.forEach(x=>{if(pct>=x[0])m=x[1]});
-if(m!=ms&&ms){note("🎯 Milestone: "+m);sfx("mile")}ms=m;
+if(m!=ms&&ms){if(!aiInterval)note("🎯 Milestone: "+m);sfx("mile")}ms=m;
 $("#st").innerHTML=[["CURRENT SCORE",S.score],["BEST SCORE",best],["ECO POINTS","🌿 "+S.eco],["MOVES",S.moves],["HIGHEST TILE",LV[lv(S.hi)][0]+" "+S.hi]].map(a=>"<div>"+a[0]+"<b>"+a[1]+"</b></div>").join("");
-$("#pl").textContent=m;$("#pp").textContent=pct+"%";$("#pf").style.width=pct+"%";
+$("#pl").textContent=m;$("#pp").textContent=pct+"%riters";$("#pf").style.width=pct+"%";
 $("#pw").innerHTML=Object.keys(PW).map(k=>'<button data-k="'+k+'" class="'+(pend==k||(k=="shield"&&S.shield)?"sel":"")+'"'+(S.pw[k]<=0?" disabled":"")+'>'+PW[k][0]+" "+PW[k][1]+" ×"+S.pw[k]+"<small>"+PW[k][2]+"</small></button>").join("");
 $("#hint").textContent=pend?({boost:"Tap a tile worth 16 or less to remove it.",blast:"Tap any cell – you will choose its row or column.",recycle:"Tap a tile to upgrade it one level."})[pend]:"";
 $("#bU").disabled=!snap;$("#bS").classList.toggle("off",!!P.sm);$("#bM").classList.toggle("off",!!P.mm);
@@ -235,6 +359,7 @@ modal("<h2>🌎 VISION 2048</h2><p><i>Every Merge Brings Us Closer to Cleaner Ai
 
 /* ---------- events ---------- */
 $("#pw").onclick=e=>{const b=e.target.closest("button");if(b)pick(b.dataset.k)};
+$("#bAI").onclick=()=>{init();toggleAI();};
 $("#bN").onclick=()=>{init();sfx("click");S.moves?ask("Start a new game? Current progress will be lost.",[["NEW GAME",newGame],["CANCEL",null,"g"]]):newGame()};
 $("#bU").onclick=()=>{init();undo()};
 $("#bH").onclick=()=>{init();sfx("click");how()};$("#bT").onclick=()=>{init();sfx("click");tips()};
