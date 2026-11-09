@@ -48,10 +48,10 @@ h1{margin:4px 0 0;font-size:clamp(1.6rem,7vw,2.6rem);letter-spacing:.04em;backgr
 #bg{position:absolute;inset:0;display:grid;grid:repeat(4,1fr)/repeat(4,1fr)}
 .c{position:relative}.c i{position:absolute;inset:4%;background:var(--cell);border-radius:12%}
 #tl{position:absolute;inset:0}
-.t{position:absolute;left:0;top:0;width:25%;height:25%;container-type:size;transition:transform .11s ease-out}
+.t{position:absolute;left:0;top:0;width:25%;height:25%;container-type:size;transition:transform .08s ease-out}
 .t .i{position:absolute;inset:4%;border-radius:12%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.45);box-shadow:0 3px 8px rgba(0,0,0,.25),inset 0 2px 4px rgba(255,255,255,.3);line-height:1.05;text-align:center}
 .i b{font-size:36cqw;font-weight:400;text-shadow:none}.i em{font-style:normal;font-weight:800;font-size:19cqw}.i small{font-size:9.5cqw;font-weight:600;padding:0 4cqw}
-.pop .i{animation:pop .25s .1s both}
+.pop .i{animation:pop .2s .05s both}
 @keyframes pop{0%{transform:scale(0);opacity:0}70%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
 #pop{margin:8px auto 0;width:min(94vw,520px);padding:8px 10px;font-size:.82rem;min-height:44px;display:flex;align-items:center;gap:8px;text-align:left;opacity:.0;transform:translateY(6px);transition:.3s}
 #pop.on{opacity:1;transform:none}
@@ -121,7 +121,7 @@ const AD=[["first","🚲","First Green Move"],["expl","🌱","Eco Explorer"],["t
 const MS=[[10,"Pollution Beginner"],[25,"Eco Explorer"],[40,"Green Warrior"],[60,"Clean Air Champion"],[80,"Planet Protector"],[100,"Clean Air City Master"]];
 const lv=v=>Math.log2(v)-1;
 let S,best=0,snap=null,pend=null,ms="",P={m:.5,s:.7,mm:0,sm:0};
-let aiInterval=null;
+let aiTimer=null;
 
 /* ---------- storage ---------- */
 function save(){try{S.t.forEach(t=>t.n=0);localStorage.setItem("bb2048",JSON.stringify({S,best}))}catch(e){}}
@@ -136,7 +136,7 @@ try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return}
 mg=AC.createGain();sg=AC.createGain();mg.connect(AC.destination);sg.connect(AC.destination);vol();music()}
 function vol(){if(!AC)return;mg.gain.value=P.mm?0:P.m*.4;sg.gain.value=P.sm?0:P.s}
 function tone(f,t0,d,ty,v,dest){const o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.value=f;g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(v,t0+.03);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(dest);o.start(t0);o.stop(t0+d+.05)}
-function sfx(n,l=0){if(!AC||AC.state!="running"||aiInterval)return;const t=AC.currentTime,T=(f,d,ty,v,o)=>tone(f,t+(o||0),d,ty||"sine",v||.25,sg);
+function sfx(n,l=0){if(!AC||AC.state!="running"||aiTimer)return;const t=AC.currentTime,T=(f,d,ty,v,o)=>tone(f,t+(o||0),d,ty||"sine",v||.25,sg);
 if(n=="slide")T(180,.08,"triangle",.12);
 else if(n=="merge"){const f=330*Math.pow(2,l/6);T(f,.2,"sine",.3);T(f*1.5,.2,"sine",.2,.06)}
 else if(n=="big")[523,659,784,1047].forEach((f,i)=>T(f,.3,"triangle",.25,i*.07));
@@ -156,7 +156,7 @@ nt+=.3;st++}},100)}
 document.addEventListener("visibilitychange",()=>{if(!AC)return;document.hidden?AC.suspend():AC.resume()});
 
 /* ---------- helpers ---------- */
-function note(h,ms=2600){if(aiInterval)return;const d=document.createElement("div");d.innerHTML=h;$("#nt").appendChild(d);setTimeout(()=>d.remove(),ms)}
+function note(h,ms=2600){if(aiTimer)return;const d=document.createElement("div");d.innerHTML=h;$("#nt").appendChild(d);setTimeout(()=>d.remove(),ms)}
 function modal(h,cls){$("#m").innerHTML='<div class="mb '+(cls||"")+'">'+h+'</div>';$("#m").classList.add("on")}
 function closeM(){$("#m").classList.remove("on");sfx("click")}
 const isOpen=()=>$("#m").classList.contains("on");
@@ -167,9 +167,10 @@ const ps=[...Array(n)].map(()=>({x:Math.random()*c.width,y:-20-Math.random()*c.h
 (function a(){x.clearRect(0,0,c.width,c.height);ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.r+=.1;x.fillStyle="hsl("+p.h+",85%,55%)";x.save();x.translate(p.x,p.y);x.rotate(p.r);x.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);x.restore()});if(f++<200)requestAnimationFrame(a);else x.clearRect(0,0,c.width,c.height)})()}
 
 /* ---------- game core ---------- */
-function newGame(){stopAI();S={t:[],score:0,moves:0,eco:0,hi:2,ach:[],pw:{boost:1,blast:1,recycle:1,shield:1},won:0,nid:1,shield:0,over:0};snap=null;pend=null;ms="";spawn();spawn();sync();ui();save()}
+let nextId = 1;
+function newGame(){stopAI();S={t:[],score:0,moves:0,eco:0,hi:2,ach:[],pw:{boost:1,blast:1,recycle:1,shield:1},won:0,shield:0,over:0};snap=null;pend=null;ms="";nextId=1;spawn();spawn();sync();ui();save()}
 function spawn(){const used=new Set(S.t.map(t=>t.r*4+t.c)),e=[];for(let i=0;i<16;i++)if(!used.has(i))e.push(i);if(!e.length)return;
-const k=e[Math.floor(Math.random()*e.length)];S.t.push({id:S.nid++,v:Math.random()<.9?2:4,r:k>>2,c:k&3,n:1})}
+const k=e[Math.floor(Math.random()*e.length)];S.t.push({id:nextId++,v:Math.random()<.9?2:4,r:k>>2,c:k&3,n:1})}
 const EM={};
 function sync(g){g=g||[];const all=S.t.concat(g),ids=new Set(all.map(t=>String(t.id)));
 for(const id in EM)if(!ids.has(id)){EM[id].remove();delete EM[id]}
@@ -188,21 +189,21 @@ if(n&&n.v==t.v){set(t,pos);set(n,pos);merges.push({a:t,b:n,r:t.r,c:t.c,v:t.v*2})
 if(!moved)return false;
 pend=null;snap=before;
 const ghosts=merges.flatMap(m=>[m.a,m.b]);S.t=S.t.filter(t=>!ghosts.includes(t));
-let top=0;merges.forEach(m=>{S.t.push({id:S.nid++,v:m.v,r:m.r,c:m.c,n:1});top=Math.max(top,m.v);S.eco+=lv(m.v)+1});
+let top=0;merges.forEach(m=>{S.t.push({id:nextId++,v:m.v,r:m.r,c:m.c,n:1});top=Math.max(top,m.v);S.eco+=lv(m.v)+1});
 S.score+=gain;S.moves++;if(S.score>best)best=S.score;
-if(S.shield){S.shield=0;if(!aiInterval)note("🌳 Tree Shield used – no new tile")}else spawn();
+if(S.shield){S.shield=0;if(!aiTimer)note("🌳 Tree Shield used – no new tile")}else spawn();
 sfx("slide");if(top){sfx(top>=128?"big":"merge",lv(top));setTimeout(()=>sfx("eco"),180)}
 if(!S.ach.includes("first"))unlock("first");
 if(top){hiCheck(top);popup(lv(top))}
-sync(ghosts);setTimeout(()=>sync(),130);ui();save();
+sync(ghosts);setTimeout(()=>sync(),100);ui();save();
 if(!canMove()){S.over=1;stopAI();save();sfx("over");setTimeout(gameOver,650)}
 return true;}
-function hiCheck(v){if(v>S.hi){S.hi=v;const l=lv(v);if(!aiInterval)note("⬆️ Level up! "+LV[l][0]+" "+LV[l][1]);sfx("mile");
-if(v==128||v==512){const k=Object.keys(PW)[Math.floor(Math.random()*4)];S.pw[k]++;if(!aiInterval)note("🎁 Power-up earned: "+PW[k][0]+" "+PW[k][1]);sfx("power")}}
+function hiCheck(v){if(v>S.hi){S.hi=v;const l=lv(v);if(!aiTimer)note("⬆️ Level up! "+LV[l][0]+" "+LV[l][1]);sfx("mile");
+if(v==128||v==512){const k=Object.keys(PW)[Math.floor(Math.random()*4)];S.pw[k]++;if(!aiTimer)note("🎁 Power-up earned: "+PW[k][0]+" "+PW[k][1]);sfx("power")}}
 if(v>=16)unlock("expl");if(v>=32)unlock("tree");if(v>=128)unlock("sol");if(v>=1024)unlock("adv");
 if(v>=2048){unlock("champ");if(!S.won){S.won=1;save();stopAI();setTimeout(victory,600)}}}
-function unlock(k){if(S.ach.includes(k))return;S.ach.push(k);const a=AD.find(x=>x[0]==k);if(!aiInterval){note("🏅 Achievement: "+a[1]+" "+a[2],3200);confetti(50)}sfx("mile")}
-let pt;function popup(l){if(aiInterval)return;$("#pe").textContent=LV[l][0];$("#pt").textContent=LV[l][2];$("#pop").classList.add("on");clearTimeout(pt);pt=setTimeout(()=>$("#pop").classList.remove("on"),5000)}
+function unlock(k){if(S.ach.includes(k))return;S.ach.push(k);const a=AD.find(x=>x[0]==k);if(!aiTimer){note("🏅 Achievement: "+a[1]+" "+a[2],3200);confetti(50)}sfx("mile")}
+let pt;function popup(l){if(aiTimer)return;$("#pe").textContent=LV[l][0];$("#pt").textContent=LV[l][2];$("#pop").classList.add("on");clearTimeout(pt);pt=setTimeout(()=>$("#pop").classList.remove("on"),5000)}
 function undo(){if(!snap||isOpen())return;S=JSON.parse(snap);snap=null;pend=null;sync();ui();save();sfx("click")}
 
 /* ---------- power-ups ---------- */
@@ -217,53 +218,69 @@ ask("Remove this "+LV[lv(t.v)][0]+" "+LV[lv(t.v)][1]+" tile?",[["REMOVE",()=>{sn
 else if(k=="blast"){const cut=f=>()=>{snap=JSON.stringify(S);S.t=S.t.filter(x=>!f(x));done()};
 ask("Clear row "+(r+1)+" or column "+(c+1)+"? Tiles there will be lost.",[["CLEAR ROW",cut(x=>x.r==r)],["CLEAR COLUMN",cut(x=>x.c==c)],["CANCEL",null,"g"]])}
 else if(k=="recycle"){if(!t||lv(t.v)>=10)return note("Pick a tile below Clean Air City");
-ask("Upgrade this "+LV[lv(t.v)][1]+" to "+LV[lv(t.v)+1][1]+"?",[["UPGRADE",()=>{snap=JSON.stringify(S);S.t=S.t.filter(x=>x!=t);const v=t.v*2;S.t.push({id:S.nid++,v,r,c,n:1});hiCheck(v);done();if(!canMove()){S.over=1;gameOver()}}],["CANCEL",null,"g"]])}}
+ask("Upgrade this "+LV[lv(t.v)][1]+" to "+LV[lv(t.v)+1][1]+"?",[["UPGRADE",()=>{snap=JSON.stringify(S);S.t=S.t.filter(x=>x!=t);const v=t.v*2;S.t.push({id:nextId++,v,r,c,n:1});hiCheck(v);done();if(!canMove()){S.over=1;gameOver()}}],["CANCEL",null,"g"]])}}
 
-/* ---------- AI AUTO-PLAY LOGIC ---------- */
-function simulateMove(state, dir) {
-    let copy = JSON.parse(JSON.stringify(state));
+/* ---------- ADVANCED EXPECTIMAX AI ENGINE ---------- */
+function simulateMoveGrid(grid, dir) {
     const horiz = dir=="L"||dir=="R", rev = dir=="R"||dir=="D";
-    let moved = false, merges = [];
+    let newGrid = grid.map(row => [...row]);
+    let moved = false, scoreGain = 0;
+
     for(let k=0; k<4; k++) {
-        let line = copy.t.filter(t => horiz ? t.r==k : t.c==k).sort((a,b)=>horiz ? a.c-b.c : a.r-b.r);
-        if(rev) line.reverse(); let pos = 0;
-        const set = (t, p) => { const q = rev ? 3-p : p, nr = horiz ? k : q, nc = horiz ? q : k; if(t.r!=nr || t.c!=nc) moved = true; t.r = nr; t.c = nc; };
+        let line = [];
+        for(let i=0; i<4; i++) {
+            let r = horiz ? k : i;
+            let c = horiz ? i : k;
+            if(newGrid[r][c] > 0) line.push(newGrid[r][c]);
+        }
+        if(rev) line.reverse();
+        
+        let mergedLine = [];
         for(let i=0; i<line.length; i++) {
-            const t = line[i], n = line[i+1];
-            if(n && n.v == t.v) { set(t, pos); set(n, pos); merges.push({v: t.v*2}); i++; moved = true; }
-            else set(t, pos); pos++;
+            if(i + 1 < line.length && line[i] === line[i+1]) {
+                let mergedVal = line[i] * 2;
+                mergedLine.push(mergedVal);
+                scoreGain += mergedVal;
+                i++;
+                moved = true;
+            } else {
+                mergedLine.push(line[i]);
+            }
+        }
+        while(mergedLine.length < 4) mergedLine.push(0);
+        if(rev) mergedLine.reverse();
+
+        for(let i=0; i<4; i++) {
+            let r = horiz ? k : i;
+            let c = horiz ? i : k;
+            if(newGrid[r][c] !== mergedLine[i]) moved = true;
+            newGrid[r][c] = mergedLine[i];
         }
     }
-    if(!moved) return null;
-    const ghosts = merges.flatMap(m => [m.a, m.b]);
-    copy.t = copy.t.filter(t => !ghosts.includes(t));
-    merges.forEach(m => copy.t.push({v: m.v}));
-    return copy;
+    return { grid: newGrid, moved, scoreGain };
 }
 
-function evaluateBoard(state) {
-    let grid = Array(4).fill(0).map(()=>Array(4).fill(0));
-    state.t.forEach(t => grid[t.r][t.c] = t.v);
-
+function evaluateGrid(grid) {
     let emptyCount = 0;
     let maxTile = 0;
     let smoothness = 0;
     let monotonicity = 0;
 
-    // Snake weights pattern to encourage keeping high values in corners/edges
+    // Snake weighting matrix favoring top-left corner / edges for high value tiles
     const weights = [
-        [65536, 32768, 16384, 8192],
-        [512,   1024,  2048,  4096],
-        [256,   128,   64,    32],
-        [1,     2,     4,     8]
+        [131072, 65536, 32768, 16384],
+        [1024,   2048,  4096,  8192],
+        [512,    256,   128,   64],
+        [4,      8,     16,    32]
     ];
     let weightedSum = 0;
 
     for(let r=0; r<4; r++) {
         for(let c=0; c<4; c++) {
             let v = grid[r][c];
-            if(v === 0) emptyCount++;
-            else {
+            if(v === 0) {
+                emptyCount++;
+            } else {
                 if(v > maxTile) maxTile = v;
                 weightedSum += v * weights[r][c];
             }
@@ -272,7 +289,7 @@ function evaluateBoard(state) {
         }
     }
 
-    // Check monotonicity across rows and columns
+    // Monotonicity check across rows and columns
     for(let r=0; r<4; r++) {
         for(let c=0; c<3; c++) {
             if(grid[r][c] >= grid[r][c+1]) monotonicity += 1;
@@ -284,18 +301,77 @@ function evaluateBoard(state) {
         }
     }
 
-    return weightedSum + (emptyCount * 25000) + smoothness * 0.1 + monotonicity * 1000;
+    // Heavy reward for empty spaces, corner anchoring, and snake structure
+    let emptyBonus = Math.log(emptyCount + 1) * 50000;
+    return weightedSum + emptyBonus + (smoothness * 0.2) + (monotonicity * 2000);
+}
+
+function expectimax(grid, depth, isPlayerTurn) {
+    if(depth === 0) {
+        return evaluateGrid(grid);
+    }
+
+    if(isPlayerTurn) {
+        let maxVal = -Infinity;
+        const dirs = ["L", "U", "R", "D"];
+        let anyValid = false;
+        for(let dir of dirs) {
+            let res = simulateMoveGrid(grid, dir);
+            if(res.moved) {
+                anyValid = true;
+                let val = expectimax(res.grid, depth - 1, false);
+                if(val > maxVal) maxVal = val;
+            }
+        }
+        return anyValid ? maxVal : evaluateGrid(grid) - 100000;
+    } else {
+        // Chance node: average over all empty cells spawning 2 (90%) or 4 (10%)
+        let emptyCells = [];
+        for(let r=0; r<4; r++) {
+            for(let c=0; c<4; c++) {
+                if(grid[r][c] === 0) emptyCells.push({r, c});
+            }
+        }
+        if(emptyCells.length === 0) return evaluateGrid(grid);
+
+        let totalScore = 0;
+        let count = 0;
+        // Sample empty cells if there are too many to keep performance lightning fast
+        let sample = emptyCells.length > 6 ? emptyCells.sort(() => 0.5 - Math.random()).slice(0, 6) : emptyCells;
+
+        for(let cell of sample) {
+            // Test value 2 (probability 0.9)
+            grid[cell.r][cell.c] = 2;
+            totalScore += 0.9 * expectimax(grid, depth - 1, true);
+            // Test value 4 (probability 0.1)
+            grid[cell.r][cell.c] = 4;
+            totalScore += 0.1 * expectimax(grid, depth - 1, true);
+            grid[cell.r][cell.c] = 0; // backtrack
+            count++;
+        }
+        return totalScore / count;
+    }
 }
 
 function getBestMove() {
+    let grid = Array(4).fill(0).map(()=>Array(4).fill(0));
+    S.t.forEach(t => {
+        if(t.r >= 0 && t.r < 4 && t.c >= 0 && t.c < 4) {
+            grid[t.r][t.c] = t.v;
+        }
+    });
+
     const dirs = ["L", "U", "R", "D"];
     let bestDir = null;
-    let maxScore = -1;
+    let maxScore = -Infinity;
+    // Dynamic search depth based on number of empty tiles (deeper when fewer tiles for precision)
+    let emptyCount = grid.flat().filter(v => v === 0).length;
+    let searchDepth = emptyCount <= 4 ? 4 : 3;
 
     for(let dir of dirs) {
-        let nextState = simulateMove(S, dir);
-        if(nextState) {
-            let score = evaluateBoard(nextState);
+        let res = simulateMoveGrid(grid, dir);
+        if(res.moved) {
+            let score = expectimax(res.grid, searchDepth, false);
             if(score > maxScore) {
                 maxScore = score;
                 bestDir = dir;
@@ -306,13 +382,14 @@ function getBestMove() {
 }
 
 function toggleAI() {
-    if(aiInterval) {
+    if(aiTimer) {
         stopAI();
         note("🤖 AI Auto-Play Paused");
     } else {
         if(S.over || S.won) return;
         init();
-        aiInterval = setInterval(() => {
+        if(isOpen()) closeM();
+        aiTimer = setInterval(() => {
             if(S.over || S.won || isOpen()) {
                 stopAI();
                 return;
@@ -321,19 +398,23 @@ function toggleAI() {
             if(bestDir) {
                 move(bestDir);
             } else {
-                stopAI();
+                const fallback = ["L", "U", "R", "D"].find(d => simulateMoveGrid(
+                    (() => { let g = Array(4).fill(0).map(()=>Array(4).fill(0)); S.t.forEach(t => g[t.r][t.c] = t.v); return g; })(), d
+                ).moved);
+                if(fallback) move(fallback);
+                else stopAI();
             }
-        }, 80); // Speed of AI moves (milliseconds per move)
-        note("🤖 AI Auto-Play Active – Maximizing Progress!");
+        }, 40);
+        note("🤖 Smart AI Auto-Play Active – Maximizing Score & Level!");
         $("#bAI").textContent = "⏸ STOP AI";
         $("#bAI").style.background = "#d9534f";
     }
 }
 
 function stopAI() {
-    if(aiInterval) {
-        clearInterval(aiInterval);
-        aiInterval = null;
+    if(aiTimer) {
+        clearInterval(aiTimer);
+        aiTimer = null;
     }
     $("#bAI").textContent = "🤖 AI AUTO-PLAY";
     $("#bAI").style.background = "";
@@ -341,9 +422,9 @@ function stopAI() {
 
 /* ---------- UI ---------- */
 function ui(){const pct=Math.round((lv(S.hi)+1)/11*100);let m="Just Starting";MS.forEach(x=>{if(pct>=x[0])m=x[1]});
-if(m!=ms&&ms){if(!aiInterval)note("🎯 Milestone: "+m);sfx("mile")}ms=m;
+if(m!=ms&&ms){if(!aiTimer)note("🎯 Milestone: "+m);sfx("mile")}ms=m;
 $("#st").innerHTML=[["CURRENT SCORE",S.score],["BEST SCORE",best],["ECO POINTS","🌿 "+S.eco],["MOVES",S.moves],["HIGHEST TILE",LV[lv(S.hi)][0]+" "+S.hi]].map(a=>"<div>"+a[0]+"<b>"+a[1]+"</b></div>").join("");
-$("#pl").textContent=m;$("#pp").textContent=pct+"%riters";$("#pf").style.width=pct+"%";
+$("#pl").textContent=m;$("#pp").textContent=pct+"%";$("#pf").style.width=pct+"%";
 $("#pw").innerHTML=Object.keys(PW).map(k=>'<button data-k="'+k+'" class="'+(pend==k||(k=="shield"&&S.shield)?"sel":"")+'"'+(S.pw[k]<=0?" disabled":"")+'>'+PW[k][0]+" "+PW[k][1]+" ×"+S.pw[k]+"<small>"+PW[k][2]+"</small></button>").join("");
 $("#hint").textContent=pend?({boost:"Tap a tile worth 16 or less to remove it.",blast:"Tap any cell – you will choose its row or column.",recycle:"Tap a tile to upgrade it one level."})[pend]:"";
 $("#bU").disabled=!snap;$("#bS").classList.toggle("off",!!P.sm);$("#bM").classList.toggle("off",!!P.mm);
